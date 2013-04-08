@@ -61,6 +61,7 @@
 //--------------------------------------------------------
 // 3D Vektor
 //--------------------------------------------------------
+const float PI = atan(1.0)*4.0;
 struct Vector {
    float x, y, z;
 
@@ -110,7 +111,11 @@ struct Color {
  	return Color(r + c.r, g + c.g, b + c.b);
    }
 };
-
+class Sugar() {
+public:
+    Vector start, irany;
+    Sugar(Vector s, Vector i){ start = s; irany = i; }
+};
 const int screenWidth = 600;	// alkalmazás ablak felbontása
 const int screenHeight = 600;
 
@@ -133,21 +138,9 @@ void onInitialization( ) {
 void onDisplay( ) {
     glClearColor(0.1f, 0.2f, 0.3f, 1.0f);		// torlesi szin beallitasa
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // kepernyo torles
-
-    // ..
-
     // Peldakent atmasoljuk a kepet a rasztertarba
     glDrawPixels(screenWidth, screenHeight, GL_RGB, GL_FLOAT, image);
-    // Majd rajzolunk egy kek haromszoget
-	glColor3f(0, 0, 1);
-	glBegin(GL_TRIANGLES);
-		glVertex2f(-0.2f, -0.2f);
-		glVertex2f( 0.2f, -0.2f);
-		glVertex2f( 0.0f,  0.2f);
-	glEnd( );
-
     // ...
-
     glutSwapBuffers();     				// Buffercsere: rajzolas vege
 
 }
