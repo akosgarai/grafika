@@ -1,0 +1,9 @@
+# depslib dependency file v1.0
+1365714846 source:/home/garai/grafika/raytracer/raytracer/main.cpp
+	<math.h>
+	<stdlib.h>
+	<windows.h>
+	<GL/gl.h>
+	<GL/glu.h>
+	<GL/glut.h>
+
