@@ -27,8 +27,8 @@
 //
 // NYILATKOZAT
 // ---------------------------------------------------------------------------------------------
-// Nev    : <VEZETEKNEV(EK)> <KERESZTNEV(EK)>
-// Neptun : <NEPTUN KOD>
+// Nev    : Garai Akos
+// Neptun : CQYOEH
 // ---------------------------------------------------------------------------------------------
 // ezennel kijelentem, hogy a feladatot magam keszitettem, es ha barmilyen segitseget igenybe vettem vagy
 // mas szellemi termeket felhasznaltam, akkor a forrast es az atvett reszt kommentekben egyertelmuen jeloltem.
@@ -62,6 +62,7 @@
 // 3D Vektor
 //--------------------------------------------------------
 const float PI = atan(1.0)*4.0;
+const float EPSILON = 0.00001;
 struct Vector {
    float x, y, z;
 
@@ -94,6 +95,7 @@ struct Vector {
 		return *this = *this * (1 / sqrt(x * x + y * y + z * z));
 	}
    float Length() { return sqrt(x * x + y * y + z * z); }
+
 };
 
 //--------------------------------------------------------
@@ -118,10 +120,68 @@ struct Color {
  	return Color(r + c.r, g + c.g, b + c.b);
    }
 };
-float min(float a, float b) {
-    if(a < b) return a;
-    return b;
-}
+class Matrix {
+public:
+    float m[4][4];
+    void Clear() {
+        for(int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+                m[i][j] = 0;
+    }
+    void LoadIdentity() {
+        Clear();
+        m[0][0] = m[1][1] = m[2][2] = m[3][3] = 1;
+    }
+    Matrix operator+(const Matrix& mat) {
+        Matrix result;
+        for(int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+                result.m[i][j] = m[i][j] + mat.m[i][j];
+        return result;
+    }
+    Matrix operator*(const Matrix& mat) {
+        Matrix result;
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++){
+                result.m[i][j] = 0;
+                for (int k = 0; k < 4; k++) result.m[i][j] += m[i][k] * mat.m[k][j];
+            }
+        return result;
+    }
+    Vector operator*(const Vector& v) {
+        float xh = m[0][0] * v.x + m[0][1] * v.z + m[0][2] * v.y + m[0][3];
+        float yh = m[1][0] * v.x + m[1][1] * v.z + m[1][2] * v.y + m[1][3];
+        float zh = m[2][0] * v.x + m[2][1] * v.z + m[2][2] * v.y + m[2][3];
+        float h = m[3][0] * v.x + m[3][1] * v.z + m[3][2] * v.y + m[3][3];
+        return Vector(xh/h, zh/h, yh/h);
+    }
+    Vector multip0(const Vector& v) {
+        float xh = m[0][0] * v.x + m[0][1] * v.z + m[0][2] * v.y;
+        float yh = m[1][0] * v.x + m[1][1] * v.z + m[1][2] * v.y;
+        float zh = m[2][0] * v.x + m[2][1] * v.z + m[2][2] * v.y;
+        float h = m[3][0] * v.x + m[3][1] * v.z + m[3][2] * v.y;
+        return Vector(xh/h, zh/h, yh/h);
+    }
+};
+class NVector {
+public:
+    float x,y,z,k;
+    NVector(){ x = y = z = k = 0; }
+    NVector(Vector v, float ki) { x = v.x; z = v.y; y = v.z; k = ki; }
+    NVector operator*(const Matrix& mat) {
+        NVector result;
+        result.x = x*mat.m[0][0] + y*mat.m[0][1] + z*mat.m[0][2] + k*mat.m[0][3];
+        result.y = x*mat.m[1][0] + y*mat.m[1][1] + z*mat.m[1][2] + k*mat.m[1][3];
+        result.z = x*mat.m[2][0] + y*mat.m[2][1] + z*mat.m[2][2] + k*mat.m[2][3];
+        result.k = x*mat.m[3][0] + y*mat.m[3][1] + z*mat.m[3][2] + k*mat.m[3][3];
+        return result;
+    }
+    float operator*(const NVector& nv) {
+        float result;
+        result = x*nv.x + y*nv.y + z*nv.z + k*nv.k;
+        return result;
+    }
+};
 class Intersection {
 public:
     float t;
@@ -136,9 +196,21 @@ public:
 };
 class Camera {
 public:
-    Vector pos;
-    Camera() { pos = Vector(0.0, 0.0, 0.0); }
+    Vector pos, normal, up;
+    Vector i, j, eye;
+    float tavolsag;
+    void init() { eye = pos + (normal * tavolsag); i = (normal % (up*(-1.0))).normalize();  j = (normal % this->i).normalize(); }
+    Camera() { pos = Vector(0.0, -3.0, 0.0); normal = Vector(1.0, 0.0, 0.0); up = Vector(0.0, 0.0, 1.0); tavolsag = 3.0; init(); }
+    Vector P(float x, float z){                                                                    // Az aktu?lis P pont ?tkonvert?l?sa
+        x = x - 300;                                                                                            // leosztjuk 300-zal , hogy meg legyen hogy, a (-1,1)-es k?perny?n, hol van
+        z = z -300;                                                                                                // a P pontunk.
+        x /= 300;
+        z /= 300;
+        return pos + (this->i * x) + (this->j * z);
+    }
+
 };
+Camera cam;
 class Fenyforras {
 public:
     Vector place;
@@ -155,25 +227,26 @@ public:
 	Object() { reflective = false; refractive = false; }
 	virtual Intersection Intersect(Sugar r) = 0;	// metszes sugarral, visszaadja a tavolsagot
 	Color Fresnel(float costheta){
-		return Color(
-			((pow((n.r - 1.0), 2)) + (pow(k.r, 2)) + (pow((1.0 - costheta), 5)) * (4 * n.r)) / ((pow((n.r + 1.0), 2)) + (pow(k.r, 2))),
-			((pow((n.g - 1.0), 2)) + (pow(k.g, 2)) + (pow((1.0 - costheta), 5)) * (4 * n.g)) / ((pow((n.g + 1.0), 2)) + (pow(k.g, 2))),
-			((pow((n.b - 1.0), 2)) + (pow(k.b, 2)) + (pow((1.0 - costheta), 5)) * (4 * n.b)) / ((pow((n.b + 1.0), 2)) + (pow(k.b, 2)))
-			);
+        float f0 = (pow(n.r-1, 2)+pow(k.r, 2))/(pow(n.r+1,2) + pow(k.r,2));
+        float f1 = (pow(n.g-1, 2)+pow(k.g, 2))/(pow(n.g+1,2) + pow(k.g,2));
+        float f2 = (pow(n.b-1, 2)+pow(k.b, 2))/(pow(n.b+1,2) + pow(k.b,2));
+        return Color((f0+((1-f0)*pow(1-costheta, 5))), (f1+((1-f1)*pow(1-costheta, 5))), (f2+((1-f2)*pow(1-costheta, 5))));
 	}
 };
 class Sphere : public Object {
 public:
     float radius;
     Vector center;
+    Matrix matr;
+
     Sphere() { radius = 1.0f; center = Vector(0.0, 0.0, 0.0); color = Color(1.0f, .0f, 0.0f); }
     Sphere(float r, Vector v, Color c) { radius = r; center = v; color = c; }
 
     Intersection Intersect(Sugar ray){
 		float t;
-		float A = ray.irany * ray.irany;/*(ray.irany.x*ray.irany.x) + (ray.irany.y*ray.irany.y) + (ray.irany.z*ray.irany.z);*/
-		float B = 2*((ray.start-center)*ray.irany);/*2*(ray.start.x-center.x)*ray.irany.x + 2*(ray.start.y-center.y)*ray.irany.y + 2*(ray.start.z-center.z)*ray.irany.z;*/
-		float C = ((ray.start-center)*(ray.start-center)) - (radius*radius);/*((ray.start.x-center.x)*(ray.start.x-center.x)) + ((ray.start.y-center.y)*(ray.start.y-center.y)) + ((ray.start.z-center.z)*(ray.start.z-center.z)) - (radius*radius);*/
+		float A = ray.irany * ray.irany;
+		float B = 2*((ray.start-center)*ray.irany);
+		float C = ((ray.start-center)*(ray.start-center)) - (radius*radius);
 		float D = B*B - 4*A*C; // diszkriminans
 		if(D < 0){
 		    return Intersection(-1,Vector(0,0,0));
@@ -183,34 +256,89 @@ public:
 		if(t1 < 0.0) return Intersection(-1,Vector(0,0,0));
 		if(t2 > 0.0) t = t2;
 		else t = t1;
-		return Intersection(t,((ray.start+ray.irany*t)-center).normalize());
+		return Intersection(t,((ray.start+ray.irany*t)-center)/radius);
 	}
-/*	Vector Norm(Vector p){
-		return (p-center).normalize();
-	}*/
+
 };
 class Table : public Object{
 public:
-    float z;
-    Table() { z = 0.0f; }
-    Table(float zv, Color c) { z = zv; color = c; }
+    float y;
+    float wi, he, lo;
+    Vector corner;
+    Table() { y = 0.0f; }
+    Table(float zv, Color c) {
+        y = zv; color = c;
+        wi = 800; he = 600; lo = 100;
+        corner = Vector(-400,-400, y);
+    }
     Intersection Intersect(Sugar ray){
         if(ray.irany.z == 0.0f){
             return Intersection(-1,Vector(0,0,0));
         }
-        else return Intersection((z-ray.start.z)/ray.irany.z,Vector(0,0,1));
+        else {
+            float t = (y-ray.start.z)/ray.irany.z;
+            Vector mp = ray.start + ray.irany*t;
+            if(((int)mp.x <= -40 && (int)mp.y <= -3) || ((int)mp.x > -40 && (int)mp.y > -3)) { color = Color(0,1,0); }
+            else {
+                color = Color(1,0,0);
+                }
+            return Intersection((y-ray.start.z)/ray.irany.z,Vector(0,0,1));
+        }
     }
-    Vector Norm(Vector p){ return Vector(0,0,1); }
+    Vector Norm(Vector p){ return Vector(0,1,0); }
+};
+class Henger : public Object {
+public:
+    Vector center;
+    float rad;
+    float h;
+    Matrix quadr;
+    void setMatrix(){
+        quadr.Clear();
+        quadr.m[0][0] = quadr.m[2][2] = (1/(rad*rad));
+        quadr.m[3][3] = -1;
+    }
+    Henger(){ center = Vector(0,0,0); rad = 1.0f; h = 1.0f; color = Color(0.0f, 1.0f, 1.0f);}
+    Henger(Vector cpos, float radh, float hh, Color c) { center = cpos; rad = radh; h = hh; color = c; setMatrix(); }
+    Intersection Intersect(Sugar ray){
+        float A, B, C, t;
+        NVector o(ray.start-center, 1);
+        NVector d(ray.irany, 0);
+        A = ((d * quadr) * d);
+        B = ((o * quadr) * d) + ((d * quadr) * o);
+        C = ((o * quadr) * o);
+        float D;
+        D = B*B-4*A*C;
+        if(D < 0){
+		    return Intersection(-1,Vector(0,0,0));
+		}
+		float t1 = ((-B) + sqrt(D))/(2*A);
+		float t2 = ((-B) - sqrt(D))/(2*A);
+		if(t1 < 0.0) return Intersection(-1,Vector(0,0,0));
+		if(t2 > 0.0) t = t2;
+		else t = t1;
+		if(A == 0 && B != 0 ){ t = -C/B; if(t < 0.0){ return Intersection(-1, Vector(0,0,0)); }}
+		if(t < EPSILON) t = EPSILON;
+		Vector result = ((ray.start-center+(ray.irany*t))-center); //.normalize();
+		if ((result.z) > center.z && result.z < center.z+(h)) {
+		    result = result.normalize();
+            return Intersection(t, result);
+		}else {
+            return Intersection(-1,Vector(0,0,0));
+		}
+    }
+
 };
 Fenyforras feny;
-Object *objs[1];
-int nObjects = 2;
+Object *objs[4];
+int nObjects = 3;//4;
 Color Trace(Sugar r, int depth){
 	Color c(0.3,0.5,1.0);
+	Color c1, c2;
 	Intersection t (2e30,Vector(0,0,0));
 	int intersectObj = -1; // eltalalt objektum indexe
 	if(depth == 0) {
-        return c;
+        return Color(0,0,0);
 	}
 	for(int i = 0; i < nObjects; i++){
 		Intersection temp = objs[i]->Intersect(r);
@@ -224,20 +352,20 @@ Color Trace(Sugar r, int depth){
 		Vector intersectP = r.start + r.irany*t.t;
 		Vector norm = t.norm;
 		Vector lightVec = (feny.place-intersectP).normalize();
-		//float cos_t = norm * lightVec;
 		if(objs[intersectObj]->reflective || objs[intersectObj]->refractive){
 			Color fresnel = objs[intersectObj]->Fresnel((intersectP-feny.place).normalize() * norm * (-1.0));
 			float cosalpha = r.irany * norm * (-1.0);
 			float n = objs[intersectObj]->n.r;
 			Sugar r2;
 			if(objs[intersectObj]->reflective){
+			    c2.r=c2.g=c2.b=0;
 				Vector vRefl = r.irany + norm*cosalpha*2;
-				r2.start = intersectP + norm*0.1;
+				r2.start = intersectP + norm*0.01;
 				r2.irany = vRefl;
-				c = fresnel * Trace(r2,depth-1);
-				//c *= 50000*pow((intersectP-feny.P).length(),-2);
+				c2 = fresnel * Trace(r2,depth-1);
 			}
-			else if(objs[intersectObj]->refractive){
+			 if(objs[intersectObj]->refractive){
+			     c1.r=c1.g=c1.b=0;
 				Vector tempNorm = norm;
 				if(cosalpha < 0){
 					tempNorm = tempNorm * (-1.0);
@@ -250,22 +378,24 @@ Color Trace(Sugar r, int depth){
 					r2.start = intersectP - tempNorm*0.1;
 					r2.irany = vRefr;
 					r2.irany.normalize();
-					c = Trace(r2,depth-1);
+					c1 = Trace(r2,depth-1)*n;
 				}
+			}
+			if(intersectObj == 1){
+                c = objs[intersectObj]->color * feny.col * (norm * lightVec)*c2*c1*600;
+			}
+			else{
+                c = objs[intersectObj]->color * feny.col * (norm * lightVec) * c1 * c2*500;
 			}
 		}else{
 			c = objs[intersectObj]->color * feny.col * (norm * lightVec);
 		}
-		if (c.g > 0.9 || c.r > 0.9){
-            int a;
-        }
-
 	}
 
 	return c;
 }
 Vector fenypos(50,0,300);
-Color fenycol(0,1,0);
+Color fenycol(1,1,0);
 const int screenWidth = 600;	// alkalmazás ablak felbontása
 const int screenHeight = 600;
 Sphere sph;
@@ -277,32 +407,34 @@ Color image[screenWidth*screenHeight];	// egy alkalmazás ablaknyi kép
 void onInitialization( ) {
 	glViewport(0, 0, screenWidth, screenHeight);
 
-    // Peldakent keszitunk egy kepet az operativ memoriaba
- /*   for(int Y = 0; Y < screenHeight; Y++)
-		for(int X = 0; X < screenWidth; X++)
-			image[Y*screenWidth + X] = Color((float)X/screenWidth, (float)Y/screenHeight, 0);
-*/
     feny.col = Color(1,1,0);
-    feny.place = Vector(10,-300,0);
- //   sph.center = Vector(10,100,100);
-  //  sph.radius = 60;
-    objs[0] = new Sphere(60, Vector(60,60,6), Color(1,0,0));
+    feny.place = Vector(10,-30,0);
+/*    objs[0] = new Sphere(2, Vector(-50,0,-1), Color(1,0,0));
     objs[0]->n = Color(1.5,1.5,1.5);
     objs[0]->k = Color(0,0,0);
- //   objs[0]->refractive = true;
-    objs[1] = new Table(-600, Color(0,1,0));
-    Camera cam;
-    cam.pos.y = -300;
- //   cam.pos.z = 3;
-   // cam.pos.x = -300;
+    //objs[0]->reflective = true;*/
+    objs[0] = new Table(-6, Color(1,1,1));
+
+    objs[1] = new Henger(Vector(-40.0,-3,-2), 1.9f, 9.0f, Color(1,1,0));
+    objs[1]->n = Color(1.3,1.3,1.3);
+    objs[1]->k = Color(1.7,3.1,25.0);
+    objs[1]->reflective = true;
+    objs[1]->refractive = true;
+
+    objs[2] = new Henger(Vector(-40,-3,-2.1), 2.0f, 10.0f, Color(1,1,1));
+    objs[2]->n = Color(1.5,1.5,1.5);
+    objs[2]->k = Color(0,0,0);
+    objs[2]->reflective = true;
+    objs[2]->refractive = true;
+
 
     for(int y = 0; y <  screenHeight; y++) {
         for(int x = 0; x <  screenHeight; x++){
-            Sugar r;
-            r.start = Vector(x - (screenWidth/2), 0, y - (screenHeight/2));
-            r.irany = (r.start - cam.pos).normalize();
-            Color c = Trace(r, 5);
-            image[y*screenWidth + x]= c;   //Color((float)x/screenWidth, (float)y/screenHeight, 0);
+
+            Vector p = cam.P(x/1.0f,y/1.0f);
+            Sugar s = Sugar(cam.eye, (p - cam.eye).normalize());
+            Color c = Trace(s, 9);
+            image[y*screenWidth + x]= c;
         }
     }
 

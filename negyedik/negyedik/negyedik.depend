@@ -1,0 +1,12 @@
+# depslib dependency file v1.0
+1367423068 source:/home/garai/grafika/negyedik/negyedik/main.cpp
+	<math.h>
+	<stdlib.h>
+	<OpenGL/gl.h>
+	<OpenGL/glu.h>
+	<GLUT/glut.h>
+	<windows.h>
+	<GL/gl.h>
+	<GL/glu.h>
+	<GL/glut.h>
+
