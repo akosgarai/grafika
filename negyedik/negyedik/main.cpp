@@ -194,6 +194,7 @@ Sphere() {center = Vector(0,0,0); radius = 0.5f; col = Color(1,0,0); }
 GLubyte  csempe[16][16][3];
 GLubyte  ball[16][16][3];
 GLubyte  fej[16][16][3];
+GLubyte  csempe2[16][16][3];
 GLubyte  kar[16][16][3];
 
 //********texturak
@@ -203,6 +204,7 @@ void text(){
                 csempe[i][j][0] = rand()%12;
                 csempe[i][j][1] = rand()%72;
                 csempe[i][j][2] = rand()%142;//0;
+
                 int t  = rand()%20;
                 if(i>8) t=255;
                 else t=0;
@@ -215,6 +217,12 @@ void text(){
                 fej[i][j][1] =50;
                 fej[i][j][2] =0;
 
+                t = 255;
+                if (i > 5 && i < 11 && j > 5 && j < 11) t = 66;
+                csempe2[i][j][0] =255;
+                csempe2[i][j][1] =255;
+                csempe2[i][j][2] =t;
+
                 t = rand()%50;
                 kar[i][j][0] =200+rand()%60;
                 kar[i][j][1] =140+rand()%60;
@@ -226,7 +234,7 @@ void text(){
     glBindTexture(GL_TEXTURE_2D, texname[0]);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 16, 16,0, GL_RGB, GL_UNSIGNED_BYTE, csempe);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 16, 16,0, GL_RGB, GL_UNSIGNED_BYTE, csempe2);
 
     glBindTexture(GL_TEXTURE_2D, texname[1]);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -244,9 +252,9 @@ void text(){
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 16, 16,0, GL_RGB, GL_UNSIGNED_BYTE, kar);
 
 }
-class Plane : public Object{
+class Plane2 : public Object{
 public:
-    Plane(){ }
+    Plane2(){ }
     void rajzol(){
         for (int i = -100;i<100;i++){
             for (int j = -100;j < 100;j++){
@@ -260,6 +268,27 @@ public:
                     glVertex3f((i+1)*1.0f,0.0,(j+1)*1.0f);
                     glTexCoord2i(0,1);
                     glVertex3f((i+0)*1.0f,0.0,(j+1)*1.0f);
+                glEnd();
+            }
+        }
+    }
+};
+class Plane : public Object{
+public:
+    Plane() {}
+    void rajzol(){
+        for(int i = -10; i < 10; i++){
+            for (int j = -10; j < 10; j++){
+                glBegin(GL_QUADS);
+                glNormal3f(0.0,1.0,0.0);
+                glTexCoord2i(0,0);
+                glVertex3f((i*10)*1.0f,0.0,(j*10)*1.0f);
+                glTexCoord2i(1,0);
+                glVertex3f((i*10)*1.0f+10.0f,0.0,(j*10)*1.0f);
+                glTexCoord2i(1,1);
+                glVertex3f((i*10)*1.0f+10.0f,0.0,(j*10)*1.0f+10.0f);
+                glTexCoord2i(0,1);
+                glVertex3f((i*10)*1.0f,0.0,(j*10)*1.0f+10.0f);
                 glEnd();
             }
         }
