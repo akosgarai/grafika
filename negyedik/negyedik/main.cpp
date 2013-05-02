@@ -66,6 +66,8 @@ const float Spec[] = {1.0f, 1.0f, 1.0f, 1.0f};
 const float Null[] = {0.0f, 0.0f, 0.0f, 1.0f};
 const float Diffuz[] = {1.0f, 1.0f, 1.0f, 1.0f};
 const float Diffuz2[] = {0.3f, 0.3f, 0.3f, 1.0f};
+const float Ambiens[] = {0.1f, 0.1f, 0.1f, 1.0f};
+float specnap[] = {1.0f, 1.0f, 0.0f, 1.0f};
 //--------------------------------------------------------
 // 3D Vektor
 //--------------------------------------------------------
@@ -190,9 +192,11 @@ float radius;
 Sphere() {center = Vector(0,0,0); radius = 0.5f; col = Color(1,0,0); }
 };
 GLubyte  csempe[16][16][3];
-GLubyte  fal[16][16][3];
+GLubyte  ball[16][16][3];
 GLubyte  fej[16][16][3];
 GLubyte  kar[16][16][3];
+
+//********texturak
 void text(){
     for (int i = 0; i< 16; i++){
         for (int j = 0; j < 16; j++){
@@ -200,10 +204,11 @@ void text(){
                 csempe[i][j][1] = rand()%72;
                 csempe[i][j][2] = rand()%142;//0;
                 int t  = rand()%20;
-
-                fal[i][j][0] =30+t;
-                fal[i][j][1] =30+t;
-                fal[i][j][2] =30+t;
+                if(i>8) t=255;
+                else t=0;
+                ball[i][j][0] =255;
+                ball[i][j][1] =255-t;
+                ball[i][j][2] =0;
 
                 t = rand()%70;
                 fej[i][j][0] =80+t;
@@ -226,7 +231,7 @@ void text(){
     glBindTexture(GL_TEXTURE_2D, texname[1]);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 16, 16,0, GL_RGB, GL_UNSIGNED_BYTE, fal);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 16, 16,0, GL_RGB, GL_UNSIGNED_BYTE, ball);
 
     glBindTexture(GL_TEXTURE_2D, texname[2]);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -260,6 +265,14 @@ public:
         }
     }
 };
+void lampa(){
+float position2[] = {10.0f, 10.0f, 10.0f, 0.0f};
+    glLightfv(GL_LIGHT0, GL_AMBIENT, Ambiens);                // Az Ambiens tag
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, Diffuz);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, Spec);
+    glLightfv(GL_LIGHT0, GL_POSITION, position2);
+    glEnable(GL_LIGHT0);
+}
 class Gomb : public Object{
 public:
     Vector *v;
@@ -380,13 +393,20 @@ const int screenHeight = 600;
 Color image[screenWidth*screenHeight];	// egy alkalmazás ablaknyi kép
 Camera cam;
 //Brick tegla;
-Gomb geza(100);
+Gomb geza(100), bela(100), pepe(100);
 Plane padlo;
+Plane plafon;
+Plane fal1, fal2, fal3;
 
 // Inicializacio, a program futasanak kezdeten, az OpenGL kontextus letrehozasa utan hivodik meg (ld. main() fv.)
 void onInitialization( ) {
 	glViewport(0, 0, screenWidth, screenHeight);
+	glEnable(GL_LIGHTING);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+   // glEnable(GL_NORMALIZE);
     text();
+    lampa();
     cam.FunctionDirr();
 
 }
@@ -395,37 +415,66 @@ void onDisplay( ) {
     glClearColor(0.1f, 0.2f, 0.3f, 1.0f);		// torlesi szin beallitasa
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // kepernyo torles
     glEnable(GL_TEXTURE_2D);
+//*********Padlo
+    glBindTexture(GL_TEXTURE_2D,texname[0]);
+    glPushMatrix();
+    glLoadIdentity();
+        glTranslatef(cam.eye.x*(-1)-0.0f,cam.eye.y-10.0f,cam.eye.z*(-1)-100.0f);
+        glScalef(0.25f,1.0f,1.0f);
+        padlo.rajzol();
+    glPopMatrix();
+//*********Plafon
+    glPushMatrix();
+    glLoadIdentity();
+        glTranslatef(0.0f,cam.eye.y +10.0f,cam.eye.z*(-1)-100.0f);
+        //glRotatef(180.0f,0.0f,0.0f,1.0f);
+        glScalef(0.25f,1.0f,1.0f);
+        plafon.rajzol();
+    glPopMatrix();
+//**********BalFal
+    glPushMatrix();
+        glLoadIdentity();
+        glTranslatef(-25.0f,cam.eye.y+0.0f,cam.eye.z*(-1)-100.0f);
+        glRotatef(90.0f,0.0f,0.0f,-1.0f);
+        glScalef(0.1f,1.0f,1.0f);
+        fal1.rajzol();
+    glPopMatrix();
+//*********Jobbfal
+    glPushMatrix();
+        glLoadIdentity();
+        glTranslatef(25.0f,cam.eye.y+0.0f,cam.eye.z*(-1)-100.0f);
+        glRotatef(90.0f,0.0f,0.0f,-1.0f);
+        glScalef(0.1f,0.1f,1.0f);
+        fal2.rajzol();
+    glPopMatrix();
+//*********Hatsofal
+    glPushMatrix();
+        glLoadIdentity();
+        glTranslatef(0.0f,cam.eye.y+0.0f,cam.eye.z*(-1)-100.0f);
+        glRotatef(90.0f,1.0f,0.0f,0.0f);
+        glScalef(0.25f,0.1f,0.1f);
+        fal3.rajzol();
+    glPopMatrix();
 //*********Laszti
     glBindTexture(GL_TEXTURE_2D,texname[1]);
     //const float head[]= {1.0f,1.0f,1.0f,1.0f};
     glPushMatrix();
-        glTranslatef(0.0f,5.0f,-30.0f);
+        glLoadIdentity();
+        glTranslatef(-4.0f,cam.eye.y-6.0f,cam.eye.z*(-1)-30.0f);
         glScalef(3.0f,3.0f,3.0f);
         geza.rajzol();
     glPopMatrix();
-//*********Padlo
-    glBindTexture(GL_TEXTURE_2D,texname[0]);
     glPushMatrix();
-        glTranslatef(0.0f,-5.0f,0.0f);
-        padlo.rajzol();
-        //glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, Spec);
-        //glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, Null);
-        //glMaterialfv(GL_FRONT, GL_DIFFUSE, Diffuz2);
-            /*for (int i = -100;i<100;i++){
-                for (int j = -100;j < 100;j++){
-                    glBegin(GL_QUADS);
-                        glNormal3f(0.0,1.0,0.0);
-                        glTexCoord2i(0,0);
-                        glVertex3f((i+0)*1.0f,-1.0,(j+0)*1.0f);
-                        glTexCoord2i(1,0);
-                        glVertex3f((i+1)*1.0f,-1.0,(j+0)*1.0f);
-                        glTexCoord2i(1,1);
-                        glVertex3f((i+1)*1.0f,-1.0,(j+1)*1.0f);
-                        glTexCoord2i(0,1);
-                        glVertex3f((i+0)*1.0f,-1.0,(j+1)*1.0f);
-                    glEnd();
-                }
-            }*/
+        glLoadIdentity();
+        glTranslatef(-2.0f,cam.eye.y-3.0f,cam.eye.z*(-1)-30.0f);
+        glScalef(3.0f,3.0f,3.0f);
+        bela.rajzol();
+    glPopMatrix();
+    glPushMatrix();
+        glLoadIdentity();
+        glTranslatef(-1.0f,-3.0f,cam.eye.z*(-1)-30.0f);
+        glScalef(3.0f,3.0f,3.0f);
+        pepe.rajzol();
     glPopMatrix();
     glDisable(GL_TEXTURE_2D);
     glutSwapBuffers();     				// Buffercsere: rajzolas vege
@@ -437,6 +486,8 @@ void onKeyboard(unsigned char key, int x, int y) {
     if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
     if (key == 'f') { cam.eye.z-=1; cam.FunctionDirr(); }
     if (key == 'b') { cam.eye.z+=1; cam.FunctionDirr(); }
+    if (key == 'u') { cam.eye.y-=1; cam.FunctionDirr(); }
+    if (key == 'd') { cam.eye.y+=1; cam.FunctionDirr(); }
     glutPostRedisplay( );
 }
 
