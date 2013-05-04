@@ -66,7 +66,7 @@ const float Spec[] = {1.0f, 1.0f, 1.0f, 1.0f};
 const float Null[] = {0.0f, 0.0f, 0.0f, 1.0f};
 const float Diffuz[] = {1.0f, 1.0f, 1.0f, 1.0f};
 const float Diffuz2[] = {0.3f, 0.3f, 0.3f, 1.0f};
-const float Ambiens[] = {0.1f, 0.1f, 0.1f, 1.0f};
+const float Ambiens[] = {0.001f, 0.001f, 0.001f, 1.0f};
 float specnap[] = {1.0f, 1.0f, 0.0f, 1.0f};
 //--------------------------------------------------------
 // 3D Vektor
@@ -88,6 +88,9 @@ struct Vector {
    }
    Vector operator-(const Vector& v) {
  	return Vector(x - v.x, y - v.y, z - v.z);
+   }
+   Vector operator/(float a) {
+	return Vector(x / a, y / a, z / a);
    }
    float operator*(const Vector& v) { 	// dot product
 	return (x * v.x + y * v.y + z * v.z);
@@ -218,7 +221,7 @@ void text(){
                 fej[i][j][2] =0;
 
                 t = 255;
-                if (i > 5 && i < 11 && j > 5 && j < 11) t = 66;
+                if (i > 3 && i < 13 && j > 3 && j < 13) t = 66;
                 csempe2[i][j][0] =255;
                 csempe2[i][j][1] =255;
                 csempe2[i][j][2] =t;
@@ -260,7 +263,7 @@ public:
             for (int j = -100;j < 100;j++){
                 glBegin(GL_QUADS);
                     glNormal3f(0.0,1.0,0.0);
-                    glTexCoord2i(0,0);
+                    if(i % 10 == 0 && j % 10 == 0) glTexCoord2i(0,0);
                     glVertex3f((i+0)*1.0f,0.0,(j+0)*1.0f);
                     glTexCoord2i(1,0);
                     glVertex3f((i+1)*1.0f,0.0,(j+0)*1.0f);
@@ -415,6 +418,127 @@ public:
         delete[] v;
     }
 };
+class Fokkha : public Object {
+public:
+//a masodik hazibol a gorbe
+    Vector controlpoints[20];
+    float knots[20];
+    Vector points[180];
+    Vector normals[180];
+    Fokkha() {}
+    void setKnots(){
+        for(int i = 0; i < 20; i++){
+            knots[i] = i+sin(i/(5.0f))*0.4f;
+        }
+    }
+
+    Vector calcVi(Vector v0, Vector v1, Vector v2, float f0, float f1, float f2){
+            Vector result;
+            result = (((v1 - v0) / (f1 - f0)) + ((v2 - v1) / (f2 - f1))) * 0.5f;
+            return result;
+    }
+
+    Vector calcPoint(int i, float j, float n, int r){
+            Vector d;
+            Vector c;
+            Vector b;
+            Vector a;
+            Vector ci, ci1;
+            if(i == 0) {
+                ci = Vector(0.0f, 0.0f, 0.0f);
+                ci1 = calcVi(controlpoints[0], controlpoints[1], controlpoints[2], knots[0], knots[1], knots[2]);
+            } else if(i == 18) {
+                ci = calcVi(controlpoints[i-1], controlpoints[i], controlpoints[i+1], knots[i-1], knots[i], knots[i+1]);
+                ci1 = Vector(0.0f, 0.0f, 0.0f);
+            } else{
+                ci = calcVi(controlpoints[i-1], controlpoints[i], controlpoints[i+1], knots[i-1], knots[i], knots[i+1]);
+                ci1 = calcVi(controlpoints[i], controlpoints[i+1], controlpoints[i+2], knots[i], knots[i+1], knots[i+2]);
+            }
+            d = controlpoints[i];
+            c = ci;
+            b = (((controlpoints[i+1] - controlpoints[i])*3/((knots[i+1] - knots[i])*(knots[i+1] - knots[i]))) - ((ci1 + (ci*2.0f))/(knots[i+1] - knots[i])));
+            a = (((controlpoints[i] - controlpoints[i+1])*(2.0f)/((knots[i+1] - knots[i])*(knots[i+1] - knots[i])*(knots[i+1] - knots[i]))) + ((ci1 + ci)/((knots[i+1] - knots[i]) * (knots[i+1] - knots[i]))));
+            Vector result;
+            float dt = (knots[i+1] - knots[i])/n*j;
+            if(r == 0) { result = (a * dt * dt * dt + b * dt * dt + c * dt + d); }
+            else { result = (a * dt * dt * 3 + b * dt * 2 + c); }
+            return result;
+    }
+
+    void setCurve(){
+        float n = 10.0f;
+        for(int i = 0; i < 18; i++) {
+            for (int k = 0; k < n; k++) {
+                Vector tmp;
+                tmp = calcPoint(i, k, n, 0);
+                points[i * (int)n + (int)k] = tmp;
+                tmp = calcPoint(i, k, n, 1);
+                normals[i * (int)n + (int)k] = tmp;
+            }
+        }
+    }
+
+    void gorbe(){
+        glBegin(GL_LINE_STRIP);
+        for (int a = 0; a < 179; a++){
+            glVertex3f(points[a].x, points[a].y, points[a].z);
+        }
+        glEnd();
+    }
+    void test(){
+        glColor3f(1.0f, 0.0f, 0.0f);
+        for (int i = 0; i < 179; i++)
+        for (int j = 0; j < 10; j++){
+            glBegin(GL_QUADS);
+            Vector side1;
+            side1.x = points[i+1].x*(cos(36*j*pi/180)) - points[i].x*(cos((36*j*pi/180)));
+            side1.y = points[i+1].x*(sin(36*j*pi/180)) - points[i].x*(sin(36*j*pi/180));
+            side1.z = points[i+1].z - points[i].z;
+            Vector side2;
+            side2.x = points[i+1].x*(cos(36*(j+1)*pi/180)) - points[i+1].x*(cos(36*j*pi/180));
+            side2.y = points[i+1].x*(sin(36*(j+1)*pi/180)) - points[i+1].x*(sin(36*j*pi/180));
+            side2.z = 0;
+            Vector normal;
+            normal = (side2 % side1).normalize()*(-1);
+            glNormal3f(normal.x, normal.y, normal.z);
+            //glNormal3f(normals[i].x*(cos((36*j*pi/180))), normals[i].x*(sin(36*j*pi/180)), normals[i].z);
+            glVertex3f(points[i].z*(cos((36*j*pi/180))), points[i].z*(sin(36*j*pi/180)), points[i].x);
+            //glNormal3f(normals[i+1].x*(cos(36*j*pi/180)), normals[i+1].x*(sin(36*j*pi/180)), normals[i+1].z);
+            glVertex3f(points[i+1].z*(cos(36*j*pi/180)), points[i+1].z*(sin(36*j*pi/180)), points[i+1].x);
+            //glNormal3f(normals[i+1].x*(cos(36*(j+1)*pi/180)), normals[i+1].x*(sin(36*(j+1)*pi/180)), normals[i+1].z);
+            glVertex3f(points[i+1].z*(cos(36*(j+1)*pi/180)), points[i+1].z*(sin(36*(j+1)*pi/180)), points[i+1].x);
+            //glNormal3f(normals[i].x*(cos(36*(j+1)*pi/180)), normals[i].x*(sin(36*(j+1)*pi/180)), normals[i].z);
+            glVertex3f(points[i].z*(cos(36*(j+1)*pi/180)), points[i].z*(sin(36*(j+1)*pi/180)), points[i].x);
+            glEnd();
+        }
+    }
+    void rajzol(){ test();}
+
+    void setControlPoints(){
+        controlpoints[0] = Vector(0,0,0);
+        controlpoints[1] = Vector(2,0,1);
+        controlpoints[2] = Vector(3,0,3);
+        controlpoints[3] = Vector(4,0,3);
+        controlpoints[4] = Vector(5,0,3);
+        controlpoints[5] = Vector(6,0,3);
+        controlpoints[6] = Vector(7,0,3);
+        controlpoints[7] = Vector(8,0,3);
+        controlpoints[8] = Vector(9,0,3);
+        controlpoints[9] = Vector(10,0,5);
+        controlpoints[10] = Vector(11,0,5);
+        controlpoints[11] = Vector(12,0,5);
+        controlpoints[12] = Vector(13,0,5);
+        controlpoints[13] = Vector(14,0,5);
+        controlpoints[14] = Vector(15,0,5);
+        controlpoints[15] = Vector(16,0,5);
+        controlpoints[16] = Vector(17,0,5);
+        controlpoints[17] = Vector(18,0,5);
+        controlpoints[18] = Vector(19,0,3);
+        controlpoints[19] = Vector(20,0,0);
+    }
+
+};
+
 const int screenWidth = 600;	// alkalmazás ablak felbontása
 const int screenHeight = 600;
 
@@ -426,6 +550,7 @@ Gomb geza(100), bela(100), pepe(100);
 Plane padlo;
 Plane plafon;
 Plane fal1, fal2, fal3;
+Fokkha idomitott;
 
 // Inicializacio, a program futasanak kezdeten, az OpenGL kontextus letrehozasa utan hivodik meg (ld. main() fv.)
 void onInitialization( ) {
@@ -433,11 +558,13 @@ void onInitialization( ) {
 	glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
-   // glEnable(GL_NORMALIZE);
+    glEnable(GL_NORMALIZE);
     text();
     lampa();
     cam.FunctionDirr();
-
+    idomitott.setKnots();
+    idomitott.setControlPoints();
+    idomitott.setCurve();
 }
 // Rajzolas, ha az alkalmazas ablak ervenytelenne valik, akkor ez a fuggveny hivodik meg
 void onDisplay( ) {
@@ -456,7 +583,7 @@ void onDisplay( ) {
     glPushMatrix();
     glLoadIdentity();
         glTranslatef(0.0f,cam.eye.y +10.0f,cam.eye.z*(-1)-100.0f);
-        //glRotatef(180.0f,0.0f,0.0f,1.0f);
+        glRotatef(180.0f,0.0f,0.0f,0.0f);
         glScalef(0.25f,1.0f,1.0f);
         plafon.rajzol();
     glPopMatrix();
@@ -506,6 +633,14 @@ void onDisplay( ) {
         pepe.rajzol();
     glPopMatrix();
     glDisable(GL_TEXTURE_2D);
+    //fokkha
+    glPushMatrix();
+        glLoadIdentity();
+        glTranslatef(-4.0, 2.0f, cam.eye.z*(-1)-20.0f);
+        glScalef(0.4f,0.4f,0.4f);
+        glRotatef(90.0f,1.0f,1.0f,0.0f);
+        idomitott.rajzol();
+    glPopMatrix();
     glutSwapBuffers();     				// Buffercsere: rajzolas vege
 
 }
