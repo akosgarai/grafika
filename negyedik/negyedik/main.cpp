@@ -186,6 +186,8 @@ void FunctionDirr(){
     gluLookAt(eye.x,eye.y,eye.z,look.x,look.y,look.z,up.x,up.y,up.z);
 }
 };
+Camera cam;
+float tmp = ((int)cam.eye.z % 3) * 1.0f;
 class Object {
 public:
 Color col;
@@ -241,11 +243,11 @@ public:
             for (int j = -100;j < 100;j++){
                 glBegin(GL_QUADS);
                     glNormal3f(0.0,1.0,0.0);
-                    if(i % 10 == 0 && j % 10 == 0) glTexCoord2i(0,0);
+                    glTexCoord2i(0,0);
                     glVertex3f((i+0)*1.0f,0.0,(j+0)*1.0f);
-                    if(i % 10 == 9 && j % 10 == 0) glTexCoord2i(1,0);
+                    glTexCoord2i(1,0);
                     glVertex3f((i+1)*1.0f,0.0,(j+0)*1.0f);
-                    if(i % 10 == 9 && j % 10 == 9) glTexCoord2i(1,1);
+                    glTexCoord2i(1,1);
                     glVertex3f((i+1)*1.0f,0.0,(j+1)*1.0f);
                     if(i % 10 == 0 && j % 10 == 9) glTexCoord2i(0,1);
                     glVertex3f((i+0)*1.0f,0.0,(j+1)*1.0f);
@@ -338,6 +340,7 @@ public:
         int i;
         int db = 0;
         //glColor3f(1,0,0);
+        glPushMatrix();
         glBegin(GL_TRIANGLES);
         for ( db = 0; db < 199 ; db++)
         {
@@ -392,12 +395,14 @@ public:
             glVertex3f(v[db*felbontas+felbontas].x, v[db*felbontas+felbontas].y,v[db*felbontas+felbontas].z);
         }
         glEnd();
+        glPopMatrix();
     }
 /* Destruktor */
     virtual ~Gomb(){
         delete[] v;
     }
 };
+Vector ep(1,2,5);
 class Fokkha : public Object {
 public:
 //a masodik hazibol a gorbe
@@ -500,7 +505,7 @@ public:
     void szemek(){
     Gomb bal(10), jobb(10);
         glPushMatrix();
-            glTranslatef(1, 2,5);
+            glTranslatef(ep.x, ep.y,ep.z);
             jobb.rajzol();
             glTranslatef(-2,0,0);
             bal.rajzol();
@@ -510,6 +515,7 @@ public:
     void szemfekete(){
         Gomb pbal(10), pjobb(10);
         glPushMatrix();
+            //glTranslatef(ep.x+0.1, ep.y+0.5, ep.z+0.5);
             glTranslatef(1.1,2.5,5);
             glScalef(0.5,0.5,0.5);
             pjobb.rajzol();
@@ -523,7 +529,7 @@ public:
         float tmpdiffcol[] = {0.2,0.2,0.2,1.0};
         //glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, tmpspeccol);
         glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, tmpspeccol);
-        glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 10.0f);
+        glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 30.0f);
         test();
         float tmpdifcol[] = {0.1,0.1,0.1,1.0};
         float wh[] = {1,1,1,1};
@@ -531,6 +537,7 @@ public:
         glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, tmpdifcol);
         szemek();
         glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, tmpspeccol);
+        glRotatef((2 +tmp) * 6, 0,0,1);
         szemfekete();
     }
 
@@ -564,9 +571,8 @@ const int screenHeight = 600;
 
 
 Color image[screenWidth*screenHeight];	// egy alkalmazás ablaknyi kép
-Camera cam;
 Gomb geza(100), bela(100), pepe(100);
-Plane2 padlo;
+Plane padlo;
 Plane plafon;
 Plane fal1, fal2, fal3;
 Fokkha idomitott;
@@ -591,7 +597,10 @@ void onDisplay( ) {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);		// torlesi szin beallitasa
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // kepernyo torles
     glEnable(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    tmp = -1 + (int)cam.eye.z % 3;
 //*********Padlo
     glBindTexture(GL_TEXTURE_2D,texname[0]);
     glPushMatrix();
@@ -637,9 +646,13 @@ void onDisplay( ) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    float tmpdifcol[] = {0.1,0.1,0.1,1.0};
+    float by[] = {1,1,0,1};
+        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, by);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, tmpdifcol);
     glPushMatrix();
         glLoadIdentity();
-        glTranslatef(-2.0f,cam.eye.y-3.0f,cam.eye.z*(-1)-15.0f);
+        glTranslatef(-5.0f,cam.eye.y-3.0f,cam.eye.z*(-1)-15.0f);
         glScalef(1.0f,1.0f,1.0f);
         pepe.rajzol();
     glPopMatrix();
