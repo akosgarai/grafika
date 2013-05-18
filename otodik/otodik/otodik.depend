@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1367786210 source:/home/garai/grafika/negyedik/negyedik/main.cpp
+1368907833 source:/home/garai/grafika/otodik/otodik/main.cpp
 	<math.h>
 	<stdlib.h>
 	<OpenGL/gl.h>

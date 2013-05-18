@@ -70,7 +70,9 @@ const float Ambiens[] = {0.1f, 0.1f, 0.1f, 1.0f};
 float specnap[] = {1.0f, 1.0f, 0.0f, 1.0f};
 float dcolor[4] = {0.1, 0.1, 0.1, 1.0};
 float scolor[4] = {0.0, 0.0, 0.0, 1.0};
-
+typedef enum mozgas{ALL, FEL, LE, BAL, JOBB, ELORE, HATRA} Allapot;
+float ballheight;
+bool balldirection;
 //--------------------------------------------------------
 // 3D Vektor
 //--------------------------------------------------------
@@ -402,28 +404,62 @@ public:
         delete[] v;
     }
 };
-Vector ep(1,2,5);
+Vector ep(2,2,3);
 class Fokkha : public Object {
 public:
 //a masodik hazibol a gorbe
     Vector controlpoints[20];
+    Allapot state;
+    Vector headcontrolpoints[10];
     float knots[20];
-    Vector points[180];
-    Vector normals[180];
-    Fokkha() {}
+    Vector bodypoints[180];
+    Vector headpoints[90];
+    Vector bodynormals[180];
+    Vector headnormals[90];
+    Vector rotate;
+    float cntr;
+    bool dir;
+    Fokkha() { state = ALL; rotate = Vector(0, 0, 0); cntr = 0.0f;  dir = true; }
     void setKnots(){
         for(int i = 0; i < 20; i++){
             knots[i] = i+sin(i/(5.0f))*0.4f;
         }
     }
 
+    void setRotateVector() {
+        switch (state) {
+            case ALL:
+                rotate.x = rotate.y = rotate.z = 0;
+                break;
+            case FEL:
+                rotate.x -= 0.1;
+                break;
+            case LE:
+                rotate.x += 0.1;
+                break;
+            case BAL:
+                rotate.y -= 0.1;
+                break;
+            case JOBB:
+                rotate.y += 0.1;
+                break;
+            case ELORE:
+                break;
+            case HATRA:
+                break;
+        }
+        if(rotate.x != 0 && rotate.y != 0 && rotate.z != 0)
+        rotate.normalize();
+        if(dir == true) cntr = cntr + 1.0f;
+        else cntr = cntr - 1.0f;
+    }
     Vector calcVi(Vector v0, Vector v1, Vector v2, float f0, float f1, float f2){
             Vector result;
             result = (((v1 - v0) / (f1 - f0)) + ((v2 - v1) / (f2 - f1))) * 0.5f;
             return result;
     }
 
-    Vector calcPoint(int i, float j, float n, int r){
+    Vector calcPoint(int i, float j, float n, int r, int imax, Vector controlpoints[]){
             Vector d;
             Vector c;
             Vector b;
@@ -432,7 +468,7 @@ public:
             if(i == 0) {
                 ci = Vector(0.0f, 0.0f, 0.0f);
                 ci1 = calcVi(controlpoints[0], controlpoints[1], controlpoints[2], knots[0], knots[1], knots[2]);
-            } else if(i == 18) {
+            } else if(i == imax) {
                 ci = calcVi(controlpoints[i-1], controlpoints[i], controlpoints[i+1], knots[i-1], knots[i], knots[i+1]);
                 ci1 = Vector(0.0f, 0.0f, 0.0f);
             } else{
@@ -455,25 +491,38 @@ public:
         for(int i = 0; i < 18; i++) {
             for (int k = 0; k < n; k++) {
                 Vector tmp;
-                tmp = calcPoint(i, k, n, 0);
-                points[i * (int)n + (int)k] = tmp;
-                tmp = calcPoint(i, k, n, 1);
-                normals[i * (int)n + (int)k] = tmp;
+                tmp = calcPoint(i, k, n, 0, 18, controlpoints);
+                bodypoints[i * (int)n + (int)k] = tmp;
+                tmp = calcPoint(i, k, n, 1, 18, controlpoints);
+                bodynormals[i * (int)n + (int)k] = tmp;
             }
         }
     }
 
-    void gorbe(){
+    void setHead(){
+        float n = 10.0f;
+        for(int i = 0; i < 9; i++) {
+            for(int k = 0; k < n; k++) {
+                Vector tmp;
+                tmp = calcPoint(i, k, n, 0, 9, headcontrolpoints);
+                headpoints[i * (int)n +  (int)k] = tmp;
+                tmp = calcPoint(i, k, n, 1, 9, headcontrolpoints);
+                headnormals[i * (int)n +  (int)k] = tmp;
+            }
+        }
+    }
+
+ /*   void gorbe(){
         glBegin(GL_LINE_STRIP);
         for (int a = 0; a < 179; a++){
             glVertex3f(points[a].x, points[a].y, points[a].z);
         }
         glEnd();
-    }
-    void test(){
+    }*/
+    void felulet(Vector points[], Vector normals[], int imax){
 
         glPushMatrix();
-        for (int i = 0; i < 179; i++)
+        for (int i = 0; i < imax; i++)
         for (int j = 0; j < 100; j++){
             glBegin(GL_QUADS);
             Vector side1;
@@ -502,48 +551,124 @@ public:
         }
         glPopMatrix();
     }
+
     void szemek(){
-    Gomb bal(10), jobb(10);
-        glPushMatrix();
-            glTranslatef(ep.x, ep.y,ep.z);
-            jobb.rajzol();
-            glTranslatef(-2,0,0);
-            bal.rajzol();
-        glPopMatrix();
-    }
-
-    void szemfekete(){
-        Gomb pbal(10), pjobb(10);
-        glPushMatrix();
-            //glTranslatef(ep.x+0.1, ep.y+0.5, ep.z+0.5);
-            glTranslatef(1.1,2.5,5);
-            glScalef(0.5,0.5,0.5);
-            pjobb.rajzol();
-            glTranslatef(-4.5,0,0);
-            pbal.rajzol();
-        glPopMatrix();
-    }
-
-    void rajzol(){
-        float tmpspeccol[] = {0.0,0.0,0.0,1.0};
-        float tmpdiffcol[] = {0.2,0.2,0.2,1.0};
-        //glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, tmpspeccol);
-        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, tmpspeccol);
-        glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 30.0f);
-        test();
         float tmpdifcol[] = {0.1,0.1,0.1,1.0};
         float wh[] = {1,1,1,1};
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, wh);
         glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, tmpdifcol);
-        szemek();
+    Gomb bal(10), jobb(10);
+        glPushMatrix();
+            glTranslatef(ep.x, ep.y,ep.z);
+            glRotatef(cntr, rotate.x, rotate.y, rotate.z);
+            jobb.rajzol();
+        glPopMatrix();
+        glPushMatrix();
+            glTranslatef(ep.x-1, ep.y+1,ep.z+1);
+            glRotatef(cntr, rotate.x, rotate.y, rotate.z);
+            bal.rajzol();
+        glPopMatrix();
+    }
+
+    void egyikszem(){
+        float tmpdifcol[] = {0.1,0.1,0.1,1.0};
+        float wh[] = {1,1,1,1};
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, wh);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, tmpdifcol);
+        Gomb feher(10), fekete(10);
+        glPushMatrix();
+            glTranslatef(ep.x, ep.y,ep.z);
+            glRotatef(cntr, rotate.x, rotate.y, rotate.z);
+            feher.rajzol();
+            float tmpspeccol[] = {0.0,0.0,0.0,1.0};
+            glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, tmpspeccol);
+            glRotatef(-40+ballheight*12, -1,1,-1);
+            glTranslatef(0, 0.5,0.5);
+            glScalef(0.5,0.5,0.5);
+            fekete.rajzol();
+        glPopMatrix();
+    }
+
+    void masikszem(){
+        float tmpdifcol[] = {0.1,0.1,0.1,1.0};
+        float wh[] = {1,1,1,1};
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, wh);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, tmpdifcol);
+        Gomb feher(10), fekete(10);
+        glPushMatrix();
+            glTranslatef(ep.x-3, ep.y,ep.z);
+            glRotatef(cntr, rotate.x, rotate.y, rotate.z);
+            feher.rajzol();
+            float tmpspeccol[] = {0.0,0.0,0.0,1.0};
+            glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, tmpspeccol);
+            glRotatef(-40+ballheight*12, -1,-1,-1);
+            glTranslatef(0, 0.5,0.5);
+            glScalef(0.5,0.5,0.5);
+            fekete.rajzol();
+        glPopMatrix();
+    }
+
+    void szemfekete(){
+        float tmpspeccol[] = {0.0,0.0,0.0,1.0};
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, tmpspeccol);
-        glRotatef((2 +tmp) * 6, 0,0,1);
-        szemfekete();
+        Gomb pbal(10), pjobb(10);
+        glPushMatrix();
+            glTranslatef(ep.x-0.2f, ep.y+0.f, ep.z+0.0f);
+            //glRotatef(cntr, rotate.x, rotate.y, rotate.z);
+            glRotatef(ballheight*12, 1,1,1);
+           // glRotatef(90, ep.x+0.0f, ep.y+0.2f, ep.z+0.2f);
+            glScalef(0.4,1.0,0.4);
+            pjobb.rajzol();
+          //  glTranslatef(-1.1,1.5,1.9);
+            glTranslatef(5,0,0);
+           // pbal.rajzol();
+        glPopMatrix();
+        glPushMatrix();
+            glTranslatef(ep.x-1.2f, ep.y+1.0f, ep.z+1.0f);
+            //glRotatef(cntr, rotate.x, rotate.y, rotate.z);
+            glRotatef(ballheight*12, 1,1,1);
+           // glRotatef(90, ep.x+0.0f, ep.y+0.2f, ep.z+0.2f);
+            glScalef(0.4,1.0,0.4);
+          //  glTranslatef(-1.1,1.5,1.9);
+            glTranslatef(5,0,0);
+            pbal.rajzol();
+        glPopMatrix();
+    }
+
+    void fej(){
+        glPushMatrix();
+            glTranslatef(0,0,0);
+            glRotatef(90,-1,-1,1);
+            glRotatef(cntr, rotate.x, rotate.y, rotate.z);
+            felulet(headpoints, headnormals, 90);
+   //         szemek();
+ //           glRotatef(ballheight*12, 1,-0,1);
+   //         szemfekete();
+            egyikszem();
+            masikszem();
+        glPopMatrix();
+    }
+
+
+    void rajzol(){
+        float tmpdiffcol[] = {0.2,0.2,0.2,1.0};
+        float tmpspeccol[] = {0.0,0.0,0.0,1.0};
+        //glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, tmpspeccol);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, tmpspeccol);
+        glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 30.0f);
+        felulet(bodypoints, bodynormals, 179);
+        fej();
+        //felulet(headpoints, headnormals, 89);
+
+       // szemek();
+
+        //glRotatef((2 +tmp) * 6, 0,0,1);
+        //szemfekete();
     }
 
     void setControlPoints(){
         controlpoints[0] = Vector(0,0,0);
-        controlpoints[1] = Vector(2,0,1);
+        controlpoints[1] = Vector(2,0,3);
         controlpoints[2] = Vector(3,0,3);
         controlpoints[3] = Vector(4,0,3);
         controlpoints[4] = Vector(5,0,3);
@@ -564,6 +689,18 @@ public:
         controlpoints[19] = Vector(20,0,0);
     }
 
+    void setHeadPoints(){
+        headcontrolpoints[0] = Vector(0,0,0);
+        headcontrolpoints[1] = Vector(1,0,2);
+        headcontrolpoints[2] = Vector(2,0,2.3);
+        headcontrolpoints[3] = Vector(3,0,2.6);
+        headcontrolpoints[4] = Vector(4,0,3);
+        headcontrolpoints[5] = Vector(5,0,3);
+        headcontrolpoints[6] = Vector(6,0,3);
+        headcontrolpoints[7] = Vector(7,0,3);
+        headcontrolpoints[8] = Vector(8,0,3);
+        headcontrolpoints[9] = Vector(9,0,0);
+    }
 };
 
 const int screenWidth = 600;	// alkalmazás ablak felbontása
@@ -590,7 +727,11 @@ void onInitialization( ) {
     cam.FunctionDirr();
     idomitott.setKnots();
     idomitott.setControlPoints();
+    idomitott.setHeadPoints();
     idomitott.setCurve();
+    idomitott.setHead();
+    ballheight = 6.2f;
+    balldirection = false;
 }
 // Rajzolas, ha az alkalmazas ablak ervenytelenne valik, akkor ez a fuggveny hivodik meg
 void onDisplay( ) {
@@ -652,7 +793,7 @@ void onDisplay( ) {
         glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, tmpdifcol);
     glPushMatrix();
         glLoadIdentity();
-        glTranslatef(-5.0f,cam.eye.y-3.0f,cam.eye.z*(-1)-15.0f);
+        glTranslatef(0.0f,cam.eye.y+ballheight,cam.eye.z*(-1)-44.0f);
         glScalef(1.0f,1.0f,1.0f);
         pepe.rajzol();
     glPopMatrix();
@@ -675,7 +816,11 @@ void onKeyboard(unsigned char key, int x, int y) {
     if (key == 'f') { cam.eye.z-=1; cam.FunctionDirr(); }
     if (key == 'b') { cam.eye.z+=1; cam.FunctionDirr(); }
     if (key == 'u') { cam.eye.y-=1; cam.FunctionDirr(); }
-    if (key == 'd') { cam.eye.y+=1; cam.FunctionDirr(); }
+    //if (key == 'd') { cam.eye.y+=1; cam.FunctionDirr(); }
+    if (key == 's') { idomitott.state = BAL; }
+    if (key == 'd') { idomitott.state = JOBB; }
+    if (key == 'e') { idomitott.state = FEL; }
+    if (key == 'x') { idomitott.state = LE; }
     glutPostRedisplay( );
 }
 
@@ -685,10 +830,40 @@ void onMouse(int button, int state, int x, int y) {
 		glutPostRedisplay( ); 						 // Ilyenkor rajzold ujra a kepet
 }
 
+long oldTime = 0;
+long epsilon = 100;
+long epsilon2 = 20;
 // `Idle' esemenykezelo, jelzi, hogy az ido telik, az Idle esemenyek frekvenciajara csak a 0 a garantalt minimalis ertek
 void onIdle( ) {
-     long time = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
+    long time = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
+    long dt = time - oldTime;
 
+    if (dt > epsilon){
+        idomitott.setRotateVector();
+    }
+    if (dt > epsilon2){
+        if (!balldirection){ ballheight -= 0.6; }
+        else { ballheight += 0.6; }
+        if (ballheight >= 7.2) balldirection = false;
+        if (idomitott.state == FEL) {
+            if (ballheight <= 2.5f) { balldirection = true; ballheight = 1.7f + idomitott.cntr*0.05f; }
+        }
+        else if (idomitott.state == LE){
+            if (ballheight <= 1.4f) { balldirection = true; ballheight = 2.0f - idomitott.cntr*0.15f; }
+        }
+        else{
+            if (ballheight <= (2.0f )) { balldirection = true; ballheight = 1.7f; }
+        }
+    }
+    if (idomitott.cntr == 9){
+        idomitott.dir = false;
+    }
+    if (idomitott.cntr == 0){
+        idomitott.dir = true;
+        idomitott.state = ALL;
+        idomitott.cntr = 0.0f;
+    }
+     glutPostRedisplay();
 }
 
 // ...Idaig modosithatod
