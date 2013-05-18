@@ -522,6 +522,12 @@ public:
     void felulet(Vector points[], Vector normals[], int imax){
 
         glPushMatrix();
+        if (state == ELORE){
+            glTranslatef(cntr * -0.2,0,0);
+        }else if (state == HATRA){
+            glTranslatef(cntr * 0.2f,0,0);
+        }
+
         for (int i = 0; i < imax; i++)
         for (int j = 0; j < 100; j++){
             glBegin(GL_QUADS);
@@ -552,24 +558,6 @@ public:
         glPopMatrix();
     }
 
-    void szemek(){
-        float tmpdifcol[] = {0.1,0.1,0.1,1.0};
-        float wh[] = {1,1,1,1};
-        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, wh);
-        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, tmpdifcol);
-    Gomb bal(10), jobb(10);
-        glPushMatrix();
-            glTranslatef(ep.x, ep.y,ep.z);
-            glRotatef(cntr, rotate.x, rotate.y, rotate.z);
-            jobb.rajzol();
-        glPopMatrix();
-        glPushMatrix();
-            glTranslatef(ep.x-1, ep.y+1,ep.z+1);
-            glRotatef(cntr, rotate.x, rotate.y, rotate.z);
-            bal.rajzol();
-        glPopMatrix();
-    }
-
     void egyikszem(){
         float tmpdifcol[] = {0.1,0.1,0.1,1.0};
         float wh[] = {1,1,1,1};
@@ -577,6 +565,11 @@ public:
         glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, tmpdifcol);
         Gomb feher(10), fekete(10);
         glPushMatrix();
+        if (state == ELORE){
+            glTranslatef(cntr * -0.2,0,0);
+        }else if (state == HATRA){
+            glTranslatef(cntr * 0.2f,0,0);
+        }
             glTranslatef(ep.x, ep.y,ep.z);
             glRotatef(cntr, rotate.x, rotate.y, rotate.z);
             feher.rajzol();
@@ -596,6 +589,11 @@ public:
         glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, tmpdifcol);
         Gomb feher(10), fekete(10);
         glPushMatrix();
+        if (state == ELORE){
+            glTranslatef(cntr * -0.2,0,0);
+        }else if (state == HATRA){
+            glTranslatef(cntr * 0.2f,0,0);
+        }
             glTranslatef(ep.x-3, ep.y,ep.z);
             glRotatef(cntr, rotate.x, rotate.y, rotate.z);
             feher.rajzol();
@@ -608,42 +606,16 @@ public:
         glPopMatrix();
     }
 
-    void szemfekete(){
-        float tmpspeccol[] = {0.0,0.0,0.0,1.0};
-        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, tmpspeccol);
-        Gomb pbal(10), pjobb(10);
-        glPushMatrix();
-            glTranslatef(ep.x-0.2f, ep.y+0.f, ep.z+0.0f);
-            //glRotatef(cntr, rotate.x, rotate.y, rotate.z);
-            glRotatef(ballheight*12, 1,1,1);
-           // glRotatef(90, ep.x+0.0f, ep.y+0.2f, ep.z+0.2f);
-            glScalef(0.4,1.0,0.4);
-            pjobb.rajzol();
-          //  glTranslatef(-1.1,1.5,1.9);
-            glTranslatef(5,0,0);
-           // pbal.rajzol();
-        glPopMatrix();
-        glPushMatrix();
-            glTranslatef(ep.x-1.2f, ep.y+1.0f, ep.z+1.0f);
-            //glRotatef(cntr, rotate.x, rotate.y, rotate.z);
-            glRotatef(ballheight*12, 1,1,1);
-           // glRotatef(90, ep.x+0.0f, ep.y+0.2f, ep.z+0.2f);
-            glScalef(0.4,1.0,0.4);
-          //  glTranslatef(-1.1,1.5,1.9);
-            glTranslatef(5,0,0);
-            pbal.rajzol();
-        glPopMatrix();
-    }
-
     void fej(){
         glPushMatrix();
-            glTranslatef(0,0,0);
+        if (state == ELORE){
+            glTranslatef(cntr * -0.,0,0);
+        }else if (state == HATRA){
+            glTranslatef(cntr * 0.2f,0,0);
+        }
             glRotatef(90,-1,-1,1);
             glRotatef(cntr, rotate.x, rotate.y, rotate.z);
             felulet(headpoints, headnormals, 90);
-   //         szemek();
- //           glRotatef(ballheight*12, 1,-0,1);
-   //         szemfekete();
             egyikszem();
             masikszem();
         glPopMatrix();
@@ -821,6 +793,8 @@ void onKeyboard(unsigned char key, int x, int y) {
     if (key == 'd') { idomitott.state = JOBB; }
     if (key == 'e') { idomitott.state = FEL; }
     if (key == 'x') { idomitott.state = LE; }
+    if (key == 'a') { idomitott.state = ELORE; }
+    if (key == 'y') { idomitott.state = HATRA; }
     glutPostRedisplay( );
 }
 
