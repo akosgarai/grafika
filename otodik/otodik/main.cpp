@@ -27,8 +27,8 @@
 //
 // NYILATKOZAT
 // ---------------------------------------------------------------------------------------------
-// Nev    : <VEZETEKNEV(EK)> <KERESZTNEV(EK)>
-// Neptun : <NEPTUN KOD>
+// Nev    : Garai Akos
+// Neptun : CQYOEH
 // ---------------------------------------------------------------------------------------------
 // ezennel kijelentem, hogy a feladatot magam keszitettem, es ha barmilyen segitseget igenybe vettem vagy
 // mas szellemi termeket felhasznaltam, akkor a forrast es az atvett reszt kommentekben egyertelmuen jeloltem.
@@ -417,9 +417,10 @@ public:
     Vector bodynormals[180];
     Vector headnormals[90];
     Vector rotate;
+    float lepo;
     float cntr;
     bool dir;
-    Fokkha() { state = ALL; rotate = Vector(0, 0, 0); cntr = 0.0f;  dir = true; }
+    Fokkha() { state = ALL; rotate = Vector(0, 0, 0); cntr = 0.0f;  dir = true; lepo = 0.0f; }
     void setKnots(){
         for(int i = 0; i < 20; i++){
             knots[i] = i+sin(i/(5.0f))*0.4f;
@@ -429,7 +430,7 @@ public:
     void setRotateVector() {
         switch (state) {
             case ALL:
-                rotate.x = rotate.y = rotate.z = 0;
+                rotate.x = rotate.y = rotate.z = 0; lepo = 0;
                 break;
             case FEL:
                 rotate.x -= 0.1;
@@ -444,8 +445,12 @@ public:
                 rotate.y += 0.1;
                 break;
             case ELORE:
+                lepo -= 0.01;
+                if (lepo <= -0.20f) { lepo = -0.20f; }
                 break;
             case HATRA:
+                lepo += 0.01;
+                if (lepo >= 0.20f) { lepo = 0.20f; }
                 break;
         }
         if(rotate.x != 0 && rotate.y != 0 && rotate.z != 0)
@@ -512,22 +517,10 @@ public:
         }
     }
 
- /*   void gorbe(){
-        glBegin(GL_LINE_STRIP);
-        for (int a = 0; a < 179; a++){
-            glVertex3f(points[a].x, points[a].y, points[a].z);
-        }
-        glEnd();
-    }*/
     void felulet(Vector points[], Vector normals[], int imax){
 
         glPushMatrix();
-        if (state == ELORE){
-            glTranslatef(cntr * -0.2,0,0);
-        }else if (state == HATRA){
-            glTranslatef(cntr * 0.2f,0,0);
-        }
-
+        glTranslatef(0,0,0);
         for (int i = 0; i < imax; i++)
         for (int j = 0; j < 100; j++){
             glBegin(GL_QUADS);
@@ -561,20 +554,17 @@ public:
     void egyikszem(){
         float tmpdifcol[] = {0.1,0.1,0.1,1.0};
         float wh[] = {1,1,1,1};
-        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, wh);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, wh);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, wh);
         glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, tmpdifcol);
         Gomb feher(10), fekete(10);
         glPushMatrix();
-        if (state == ELORE){
-            glTranslatef(cntr * -0.2,0,0);
-        }else if (state == HATRA){
-            glTranslatef(cntr * 0.2f,0,0);
-        }
             glTranslatef(ep.x, ep.y,ep.z);
             glRotatef(cntr, rotate.x, rotate.y, rotate.z);
             feher.rajzol();
             float tmpspeccol[] = {0.0,0.0,0.0,1.0};
-            glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, tmpspeccol);
+            glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, tmpspeccol);
+            glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, tmpspeccol);
             glRotatef(-40+ballheight*12, -1,1,-1);
             glTranslatef(0, 0.5,0.5);
             glScalef(0.5,0.5,0.5);
@@ -585,20 +575,17 @@ public:
     void masikszem(){
         float tmpdifcol[] = {0.1,0.1,0.1,1.0};
         float wh[] = {1,1,1,1};
-        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, wh);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, wh);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, wh);
         glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, tmpdifcol);
         Gomb feher(10), fekete(10);
         glPushMatrix();
-        if (state == ELORE){
-            glTranslatef(cntr * -0.2,0,0);
-        }else if (state == HATRA){
-            glTranslatef(cntr * 0.2f,0,0);
-        }
             glTranslatef(ep.x-3, ep.y,ep.z);
             glRotatef(cntr, rotate.x, rotate.y, rotate.z);
             feher.rajzol();
             float tmpspeccol[] = {0.0,0.0,0.0,1.0};
-            glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, tmpspeccol);
+            glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, tmpspeccol);
+            glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, tmpspeccol);
             glRotatef(-40+ballheight*12, -1,-1,-1);
             glTranslatef(0, 0.5,0.5);
             glScalef(0.5,0.5,0.5);
@@ -608,11 +595,7 @@ public:
 
     void fej(){
         glPushMatrix();
-        if (state == ELORE){
-            glTranslatef(cntr * -0.,0,0);
-        }else if (state == HATRA){
-            glTranslatef(cntr * 0.2f,0,0);
-        }
+            glTranslatef(0,0,0);
             glRotatef(90,-1,-1,1);
             glRotatef(cntr, rotate.x, rotate.y, rotate.z);
             felulet(headpoints, headnormals, 90);
@@ -630,12 +613,6 @@ public:
         glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 30.0f);
         felulet(bodypoints, bodynormals, 179);
         fej();
-        //felulet(headpoints, headnormals, 89);
-
-       // szemek();
-
-        //glRotatef((2 +tmp) * 6, 0,0,1);
-        //szemfekete();
     }
 
     void setControlPoints(){
@@ -761,7 +738,8 @@ void onDisplay( ) {
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     float tmpdifcol[] = {0.1,0.1,0.1,1.0};
     float by[] = {0.5,0.5,0.5,1};
-        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, by);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, by);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, by);
         glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, tmpdifcol);
     glPushMatrix();
         glLoadIdentity();
@@ -773,7 +751,7 @@ void onDisplay( ) {
 //********fokkha
     glPushMatrix();
         glLoadIdentity();
-        glTranslatef(+3.0, cam.eye.y-0.0f, cam.eye.z*(-1)-45.0f);
+        glTranslatef(+3.0+idomitott.cntr*idomitott.lepo, cam.eye.y-0.0f, cam.eye.z*(-1)-45.0f);
         glRotatef(90.0f,1.0f,0.0f,0.0f);
         glScalef(0.5f,0.2f,0.5f);
         idomitott.rajzol();
@@ -784,11 +762,10 @@ void onDisplay( ) {
 
 // Billentyuzet esemenyeket lekezelo fuggveny
 void onKeyboard(unsigned char key, int x, int y) {
-    if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
+   // if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
     if (key == 'f') { cam.eye.z-=1; cam.FunctionDirr(); }
     if (key == 'b') { cam.eye.z+=1; cam.FunctionDirr(); }
     if (key == 'u') { cam.eye.y-=1; cam.FunctionDirr(); }
-    //if (key == 'd') { cam.eye.y+=1; cam.FunctionDirr(); }
     if (key == 's') { idomitott.state = BAL; }
     if (key == 'd') { idomitott.state = JOBB; }
     if (key == 'e') { idomitott.state = FEL; }
