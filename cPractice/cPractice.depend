@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1370033734 source:/home/garai/grafika/cPractice/main.c
+	<stdio.h>
+	<stdlib.h>
+	<math.h>
+
